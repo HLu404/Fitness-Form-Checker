@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}Analysis - Fitness Form Checker{% endblock %}
+
+{% block extra_css %}
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        overflow: hidden; /* 🔥 kills vertical scrolling */
+    }
+
+    body {
+        background-color: #1a1a1a;
+    }
+
+    .stream-section {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+    }
+
+    .video-container {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .video-frame {
+        max-width: 100%;
+        max-height: 70vh;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        background: #000;
+    }
+
+    .status-badge {
+        margin-bottom: 10px;
+        padding: 6px 16px;
+        background-color: rgba(255,255,255,0.2);
+        border-radius: 20px;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<section class="stream-section">
+    <div class="container video-container">
+        <div class="text-center mb-4">
+            <span class="status-badge">🔴 Live Analysis</span>
+            <h1 class="text-white">Form Analysis</h1>
+        </div>
+        
+        <div class="row">
+            <div class="col-12">
+                <img src="{% url 'videos:video_feed' video.id %}" 
+                     alt="Video Analysis" 
+                     class="video-frame">
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h4>Feedback</h4>
+            <ul class="mb-0">
+                <li><strong style="color: #90EE90;">Green</strong> = Good form ✅</li>
+                <li><strong style="color: #FFB6C6;">Red</strong> = Needs correction ⚠️</li>
+            </ul>
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{% url 'videos:upload' %}" class="btn btn-light btn-lg">
+                ← Upload Another Video
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

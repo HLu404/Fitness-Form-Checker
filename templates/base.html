@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Videos{% endblock %}</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* Layout */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background-color: #1e293b;
+            color: #cbd5f5;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 70px;
+        }
+
+        /* Toggle button */
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: #cbd5f5;
+            font-size: 24px;
+            cursor: pointer;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        /* Nav links */
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .nav-links a {
+            color: #cbd5f5;
+            text-decoration: none;
+            padding: 10px;
+            border-radius: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .nav-links a.active {
+            background-color: #334155;
+            color: #60a5fa;
+        }
+
+        /* Hide link text when collapsed */
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+
+        /* Main content */
+        .content {
+            flex: 1;
+            padding: 40px;
+            background-color: #f8fafc;
+        }
+
+        .content-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+        }
+
+        /* Mobile behavior */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100%;
+                z-index: 1000;
+            }
+
+            .content {
+                margin-left: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <button class="toggle-btn" id="toggle-btn">☰</button>
+
+        <nav class="nav-links">
+            <a href="{% url 'videos:home' %}"
+               class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                <span class="nav-text">Home</span>
+            </a>
+
+            <a href="{% url 'videos:upload' %}"
+               class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">
+                <span class="nav-text">Upload</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="content">
+        <div class="content-inner">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+</div>
+
+<script>
+    const toggleBtn = document.getElementById("toggle-btn");
+    const sidebar = document.getElementById("sidebar");
+
+    toggleBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("collapsed");
+    });
+</script>
+
+</body>
+</html>
