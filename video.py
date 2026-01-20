@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from math import sqrt
 from math import acos
+from math import pi
+from math import degrees
 from ultralytics import YOLO
 
 # predict using a given model and image. 
@@ -29,12 +31,19 @@ def angle(p1,p2,p3):
     C = sqrt( (p1[0]-p3[0])**2 + (p1[1]-p3[1])**2)
     A = sqrt( (p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
     B = sqrt( (p2[0]-p3[0])**2 + (p2[1]-p3[1])**2)
-    angle = acos( (C^2 - A^2 - B^2) / (-2*A*B) )
+    if A==0 or B == 0:
+        return 0
+    cosine_law = ((C**2 - A**2 - B**2) / (-2*A*B))
+    cos_theta = max(-1,min(1,cosine_law))
+    angle = abs(degrees(acos(cos_theta)))
     return angle 
 
 # returns the slope and y-intercept given by 2 points in y = mx + b format 
 def line(p1, p2):
-    slope = ( (p2[1]-p1[1]) / (p2[0]-p1[0]) )
+    if p2[0]-p1[0]==0:
+        slope = 100
+    else:
+        slope = ( (p2[1]-p1[1]) / (p2[0]-p1[0]) )
     b = p1[1] - slope * p1[0] 
     return slope, b
 
@@ -100,53 +109,155 @@ def straight_back(pose_p, outline_p):
         return False
     else:
         return True
+def exercise_detection(pose_coords):
+    a_12_14_16 = angle(pose_coords[0][12],pose_coords[0][14],pose_coords[0][16])
+    a_11_13_15 = angle(pose_coords[0][11],pose_coords[0][13],pose_coords[0][15])
+    a_6_8_10 = angle(pose_coords[0][6],pose_coords[0][8],pose_coords[0][10])
+    a_5_7_9 = angle(pose_coords[0][5],pose_coords[0][7],pose_coords[0][9])
+    a_6_12_16 = angle(pose_coords[0][6],pose_coords[0][12],pose_coords[0][16])
+    a_5_11_15 = angle(pose_coords[0][5],pose_coords[0][11],pose_coords[0][15])
+    a_8_6_12 = angle(pose_coords[0][8],pose_coords[0][6],pose_coords[0][12])
+    a_7_5_11 = angle(pose_coords[0][7],pose_coords[0][5],pose_coords[0][11])
+    a_10_6_12 = angle(pose_coords[0][10],pose_coords[0][6],pose_coords[0][12])
+    a_9_5_11 = angle(pose_coords[0][9],pose_coords[0][5],pose_coords[0][11])
+    a_6_12_14 = angle(pose_coords[0][6],pose_coords[0][12],pose_coords[0][14])
+    a_5_11_13 = angle(pose_coords[0][5],pose_coords[0][11],pose_coords[0][13])
+    a_3_5_11 = angle(pose_coords[0][3],pose_coords[0][5],pose_coords[0][11])
+    a_4_6_12 = angle(pose_coords[0][4],pose_coords[0][6],pose_coords[0][12])
+    a_4_12_16 = angle(pose_coords[0][4],pose_coords[0][12],pose_coords[0][16])
+    a_3_11_15 = angle(pose_coords[0][3],pose_coords[0][11],pose_coords[0][15])
+
+
+    if ((160<=a_3_5_11<=180 or 160<=a_4_6_12<=180) and
+          (160<=a_6_8_10<=180 or 160<=a_5_7_9<=180) and
+          (120<=a_12_14_16<=180 or 120<=a_11_13_15<=180) and
+          (90<=a_4_12_16 or 90<=a_3_11_15)):
+        return "Deadlift"
     
-pose = YOLO('yolov8n-pose.pt')
-pose.to('cuda')
-outline = YOLO('yolov8n-seg.pt')
-outline.to('cuda')
-cap = cv2.VideoCapture('Squat.mp4')
+    elif ((160<=a_6_12_16<=180 or 160<=a_5_11_15<=180) and
+           (0<=a_5_7_9<=60 or 0<=a_6_8_10<=60) and
+           (0<=a_8_6_12<=60 or 0<=a_7_5_11<=60) and
+           (160<=a_12_14_16<=180 or 160<=a_11_13_15<=180)):
+        return "Squat"
+    elif ((120<=a_10_6_12<=180 or 120<=a_9_5_11<=180) and
+          (a_12_14_16<=120 or a_11_13_15<=120) and 
+          (160<=a_6_8_10<=180 or 160<=a_5_7_9<=180)):
+        return "Lat Pulldowns"
+    elif ((160<=a_6_8_10<=180 or 160<=a_5_7_9<=180) and 
+          (130<=a_10_6_12<=180 or 130<=a_9_5_11<=180) and
+          ((0<=a_12_14_16<=90 or 0<=a_11_13_15<=90) or 
+           (160<=a_6_12_16<=180 or 160<=a_5_11_15<=180)) and 
+           (160<=a_6_12_14<=180 or 160<=a_5_11_13<=180)):
+        return "Pullups"
+    elif ((160<=a_5_7_9<=180 or 160<=a_6_8_10<=180) and
+          (120<=a_6_12_14<=180 or 120<=a_5_11_13<=180) and  
+          (0<=a_12_14_16<=120 or 0<=a_11_13_15<=120)):
+        return "Chest Dips"
+    else:
+        return "No exercise recognized"
 
-# Get video properties
-fps = int(cap.get(cv2.CAP_PROP_FPS))
-width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+def lat_form(frame, out, pose_coords, starting_rep):
+    # Elbow angles
+    a_6_8_10 = angle(pose_coords[0][6], pose_coords[0][8], pose_coords[0][10])
+    a_5_7_9 = angle(pose_coords[0][5], pose_coords[0][7], pose_coords[0][9])
+    elbow_angle = min(a_6_8_10, a_5_7_9)
 
-# Create video writer
-fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-out = cv2.VideoWriter("output2.mp4", fourcc, fps, (width, height))
+    a_6_12_14 = angle(pose_coords[0][6], pose_coords[0][12], pose_coords[0][14])
+    a_5_11_13 = angle(pose_coords[0][5], pose_coords[0][11], pose_coords[0][13])
+    lean_angle = max(a_6_12_14,a_5_11_13)
+    
+    if 120<=elbow_angle<=150 and not starting_rep: 
+        cv2.putText(frame,'Extension: Full Extension at Top of Rep!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA) 
+    else: 
+        cv2.putText(frame,'Extension: Good!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
+    
+    if 0<lean_angle<135: 
+        cv2.putText(frame,'Lean: Good!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
+    else: 
+        cv2.putText(frame,'Lean: Too Far Back!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
+    
+    if 60<=elbow_angle<=90 and starting_rep:
+        cv2.putText(frame,'Pull: Bring Bar to Chest!',(0,165),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
+    else: 
+        cv2.putText(frame,'Pull: Good!',(0,165),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA)
+    out.write(frame)
+    return elbow_angle
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+def pul_form(frame, out, pose_coords, starting_rep):
+    a_6_8_10 = angle(pose_coords[0][6], pose_coords[0][8], pose_coords[0][10])
+    a_5_7_9 = angle(pose_coords[0][5], pose_coords[0][7], pose_coords[0][9])
+    elbow_angle = min(a_6_8_10, a_5_7_9)
 
-    # get pose of biggest "box" of person in a frame
-    # gets the outline of the biggest "box" of person in a frame
-    annotated_pose, largest_idx_pose, person_detected = predict(pose,frame)
-    annotated_outline, largest_idx_outline, person_detected = predict(outline,frame)
+    if 100<=elbow_angle<=150 and not starting_rep: 
+        cv2.putText(frame,'Extension: Full Extension at Top of Rep!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA) 
+    else: 
+        cv2.putText(frame,'Extension: Good!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
 
-    if person_detected:
-        pose_coords = annotated_pose.keypoints[largest_idx_pose].data.cpu().numpy() # get the pose coordinates of biggest box 
-        outline_coords = annotated_outline.masks.xy[largest_idx_outline] # get the outline coordinates of biggest box
+    if 60<=elbow_angle<=90 and starting_rep:
+        cv2.putText(frame,'Pull: Bring Chin to Bar!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
+    else: 
+        cv2.putText(frame,'Pull: Good!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA)
+    out.write(frame)
+    return elbow_angle
 
-        h, w, c= frame.shape  
-        canvas = np.zeros((h,w,c),dtype=np.uint8) # make black and white canvas
-        for point in pose_coords:
-            for x,y,conf in point:
-                cv2.circle(canvas,(int(x),int(y)),5,(255,255,255),-1)
-        for a,b in outline_coords:
-            cv2.circle(canvas,(int(a),int(b)),5,(255,255,255),-1)
-        # cv2.imshow('combined',canvas)
-        # print(straight_back(pose_coords,outline_coords))
-        out.write(canvas)
+def dips_form(frame,out,pose_coords,starting_rep):
+    a_6_8_10 = angle(pose_coords[0][6], pose_coords[0][8], pose_coords[0][10])
+    a_5_7_9 = angle(pose_coords[0][5], pose_coords[0][7], pose_coords[0][9])
+    elbow_angle = min(a_6_8_10, a_5_7_9)
 
-    #cv2.imshow('pose',annotated_pose.plot())
-    #cv2.imshow('outline',annotated_outline.plot())
-    # termination --> press q on keyboard
-    '''
-    if 0xFF == ord('q'):  
-        cv2.destroyAllWindows
-        out.release
-        break
-    '''
+    if 120<=elbow_angle<=150 and not starting_rep: 
+        cv2.putText(frame,'Extension: Full Extension at Top of Rep!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA) 
+    else: 
+        cv2.putText(frame,'Extension: Good!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
+
+    if 90<=elbow_angle<120 and starting_rep:
+        cv2.putText(frame,'Push: Bring Chest Lower!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
+    else: 
+        cv2.putText(frame,'Push: Good!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA)
+
+    out.write(frame)
+    return elbow_angle
+
+def deadlift_form(frame,out,pose_coords,outline_coords,starting_rep):
+    a_6_12_16 = angle(pose_coords[0][6], pose_coords[0][12], pose_coords[0][16])
+    a_5_11_15 = angle(pose_coords[0][5], pose_coords[0][11], pose_coords[0][15])
+    straight = max(a_6_12_16,a_5_11_15)
+    
+    a_10_14_16 = angle(pose_coords[0][10], pose_coords[0][14], pose_coords[0][16])
+    a_9_13_15 = angle(pose_coords[0][9], pose_coords[0][13], pose_coords[0][15])
+    legs = max(a_9_13_15,a_10_14_16)
+
+    if not straight_back(pose_coords,outline_coords):
+        cv2.putText(frame,'Back: Keep Back Straight!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA) 
+    else:
+        cv2.putText(frame,'Back: Good!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
+
+    if not starting_rep and 150<=straight<=170:
+        cv2.putText(frame,'Pull: Lock Out Deadlift!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA)
+    else: 
+        cv2.putText(frame,'Pull: Good!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA)
+    
+    if starting_rep and legs>=90:
+        cv2.putText(frame,'End of lift: All the Way Down!',(0,165),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA) 
+    else:
+        cv2.putText(frame,'End of lift: Good!',(0,165),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
+    
+    out.write(frame)
+    return straight
+
+def squat_form(frame,out,pose_coords,outline_coords,starting_rep):
+    a_12_14_16 = angle(pose_coords[0][12], pose_coords[0][14], pose_coords[0][16])
+    a_11_13_15 = angle(pose_coords[0][11], pose_coords[0][13], pose_coords[0][15])
+    legs = max(a_11_13_15,a_12_14_16)
+
+    if not straight_back(pose_coords,outline_coords):
+        cv2.putText(frame,'Back: Keep Back Straight!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA) 
+    else:
+        cv2.putText(frame,'Back: Good!',(0,105),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
+    if not starting_rep and legs>=90:
+        cv2.putText(frame,'Legs: All the way down to the floor!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,255),2,cv2.LINE_AA) 
+    else:
+        cv2.putText(frame,'Legs: Good!',(0,135),cv2.FONT_HERSHEY_SIMPLEX,1,(0,255,0),2,cv2.LINE_AA) 
+
+    out.write(frame)
+    return legs
